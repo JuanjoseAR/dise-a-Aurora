@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Arma a Aurora</title>
+<meta name="description" content="Diseña a Aurora, la asistente de la Cámara de Comercio de Santa Marta, y envía tu diseño como voto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 17c-3-7-9-9-12-7-3 3 1 10 7 11-6 1-9 6-6 8 3 2 8-1 11-6 3 5 8 8 11 6 3-2 0-7-6-8 6-1 10-8 7-11-3-2-9 0-12 7z' fill='%237DF6FB'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 17c-3-7-9-9-12-7-3 3 1 10 7 11-6 1-9 6-6 8 3 2 8-1 11-6 3 5 8 8 11 6 3-2 0-7-6-8 6-1 10-8 7-11-3-2-9 0-12 7z" fill="#7DF6FB"/><path d="M16 9v16" stroke="#A98BFF" stroke-width="2.2" stroke-linecap="round"/><path d="M13 7l3 3 3-3" fill="none" stroke="#A98BFF" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+      <div><b>Arma a Aurora</b><small id="subtitle">¿Cómo te imaginas a Aurora? Respóndelo y se arma sola.</small></div>
+    </div>
+    <nav class="topnav" id="topnav" hidden>
+      <button class="navbtn" id="navArmar" type="button">Mi diseño</button>
+      <button class="navbtn" id="navGaleria" type="button" disabled title="Aún no está habilitada la galería"><span class="dot"></span>Ver diseños</button>
+      <button class="navbtn" id="navResultados" type="button" hidden>Resultados</button>
+    </nav>
+  </header>
+
+  <!-- Código de acceso -->
+  <section class="panel narrow" id="s-acceso">
+    <div class="head"><span class="eyebrow">Cámara de Comercio de Santa Marta</span><h1>Diseñemos a Aurora</h1><p>Esta página es para colaboradores de la CCSM. Escribe el código de acceso que te compartió el equipo organizador.</p></div>
+    <form class="field" id="fAcceso" autocomplete="off">
+      <label for="codigo">Código de acceso</label>
+      <input id="codigo" type="text" inputmode="text" placeholder="Escribe el código" required>
+      <p class="status" id="stAcceso" aria-live="polite"></p>
+      <div class="row"><button class="primary" type="submit">Entrar</button></div>
+    </form>
+    <p class="note" id="demoNote" hidden></p>
+  </section>
+
+  <!-- Bienvenida -->
+  <section class="panel narrow" id="s-bienvenida" hidden>
+    <div class="head"><span class="eyebrow">Bienvenida</span><h1>¿Cómo te imaginas a Aurora?</h1><p>Aurora es la asistente de la CCSM: saluda y conversa con las personas que reconoce. Vamos a decidir juntos cómo se ve. Su concepto es la mariposa aurora: alas blancas con la punta naranja. Las alas, antenas, cabello y detalles son accesorios: puedes ponerlos o no.</p></div>
+    <div class="welcome">
+      <div class="kpi"><small>Qué vas a hacer</small><b>Armarla paso a paso</b></div>
+      <div class="kpi"><small>Tu diseño</small><b>Cuenta como voto</b></div>
+      <div class="kpi"><small>Cuántos votos</small><b>Uno por persona</b></div>
+      <div class="kpi"><small>Cuánto toma</small><b>Unos 3 minutos</b></div>
+    </div>
+    <ol class="steps-list">
+      <li>Respondes hasta 11 preguntas y ves a Aurora armarse en vivo.</li>
+      <li>Revisas tu ficha, eliges tu nombre de la lista y envías tu voto. Es definitivo.</li>
+      <li>Después de votar ves cómo va la votación.</li>
+    </ol>
+    <p class="status" id="stBienvenida"></p>
+    <div class="row"><button class="primary" id="bEmpezar" type="button">Empezar</button><button class="ghost" id="bYaVote" type="button" hidden>Ya voté: ver resultados</button></div>
+  </section>
+
+  <!-- Armador / revisión / confirmación / resultados / galería -->
+  <main class="grid" id="s-grid" hidden>
+    <section class="stage" id="stage" aria-label="Vista en vivo de Aurora">
+      <div class="stage-top"><span class="live"><i></i><span id="liveLabel">Vista en vivo</span></span><button class="ghost" id="rand" type="button">Sorpréndeme</button></div>
+      <svg class="av" id="av" role="img" aria-label="Diseño de Aurora"></svg>
+      <div class="stage-bottom">
+        <button class="chip wave" type="button" data-act="wave">Saludar</button>
+        <button class="chip" type="button" data-act="look">Mirar alrededor</button>
+        <button class="chip" type="button" data-expr="feliz">Feliz</button>
+        <button class="chip" type="button" data-expr="sorpresa">Sorpresa</button>
+        <button class="chip" type="button" data-expr="pensando">Pensando</button>
+      </div>
+    </section>
+    <section class="panel" id="panel" aria-live="polite">
+      <div class="head"><span class="eyebrow" id="eyebrow"></span><h1 id="q"></h1><p id="help"></p></div>
+      <ol class="rail" id="rail" aria-label="Pasos" hidden></ol>
+      <div id="body" class="block" style="gap:22px"></div>
+      <nav class="nav" id="nav"><button class="ghost" id="back" type="button">Atrás</button><button class="primary" id="next" type="button">Siguiente</button></nav>
+    </section>
+  </main>
+
+  <!-- Panel del dueño -->
+  <section class="panel" id="s-admin" hidden></section>
+
+  <footer>Un voto por persona. Tu nombre solo se usa para esta votación y no aparece en los resultados.</footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="config.js"></script>
+<script src="catalogo.js"></script>
+<script src="colaboradores.js"></script>
+<script src="piezas.js"></script>
+<script src="engine.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
