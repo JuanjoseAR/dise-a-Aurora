@@ -2,52 +2,28 @@
 (function () {
   const $ = id => document.getElementById(id);
   const CAT = window.CATALOGO, Q = id => CAT.preguntas.find(p => p.id === id);
-  const { thumbSVG, opt, color } = window.AuroraCompose;
+  const { thumbHTML, opt, codigo } = window.AuroraCompose;
   const API = window.API, SES = API.SES;
   const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   const html = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   let estado = { rondaA: 'abierta', galeria: 'no', rondaB: 'no_iniciada' }, colabs = [];
   let av = null, screen = '';
 
-  /* ---------- estado del diseño (v2) ---------- */
-  const ZONAS = CAT.zonas, PALETAS = CAT.paletas;
-  const DEF = { base: 'caricaturesca', nivel: 'robot', alas: 'aurora', paleta: 'natural', alasBase: 'blanco', alasPunta: 'naranja', alasMancha: 'negro', alasBorde: 'sepia', alasPatron: 'moteado', luces: 'cian', tono: 'blanco', cabello: 'ovalada', cabelloColor: 'noche', antenas: 'led', ojos: 'ovalos', ojosColor: 'cian', boca: 'sonrisa', detalles: [], personalidad: 'amable' };
-  let S = JSON.parse(JSON.stringify(DEF));
-  const TONO_MAP = { porcelana: 'blanco', durazno: 'blanco', canela: 'perla', oliva: 'crema', cacao: 'carbon', ebano: 'carbon', blanco: 'porcelana', perla: 'durazno', carbon: 'cacao', crema: 'oliva' };
+  /* ---------- estado del diseño (versión caribe) ---------- */
+  const DEF = Object.assign({}, window.AuroraCompose.DEF);
+  let S = Object.assign({}, DEF);
   const aplica = (qid, st) => { const q = Q(qid); if (!q || !q.aplicaSi) return true; return Object.entries(q.aplicaSi).every(([k, l]) => l.includes(st[k])); };
-  const conAlas = st => ['aurora', 'pequenas', 'luz'].includes(st.alas);
-  function valida(q, o, st) {
-    if (!o) return 'No existe';
-    if (o.nivel && !o.nivel.includes(st.nivel)) return o.motivo || 'No aplica para esta versión';
-    if (o.base && !o.base.includes(st.base)) return o.motivo || 'No aplica para esta base';
-    return null;
-  }
-  const zonasPara = zid => ZONAS.filter(z => !z.soloZona || z.soloZona.includes(zid));
-  function aplicarPaleta(st) {
-    if (!conAlas(st)) return st;
-    const pal = PALETAS[st.paleta];
-    if (pal) Object.assign(st, pal);
-    return st;
-  }
+  // completa con los valores por defecto lo que no aplica (p. ej. las luces del traje en el estilo ejecutivo) para poder dibujarlo
   function coerce(st) {
-    const q = id => Q(id).opciones;
-    if (!q('nivel').find(o => o.id === st.nivel && !valida('nivel', o, st))) st.nivel = q('nivel').find(o => !valida('nivel', o, st)).id;
-    const tonoOk = q('tono').find(o => o.id === st.tono && !valida('tono', o, st));
-    if (!tonoOk) st.tono = TONO_MAP[st.tono] && !valida('tono', opt('tono', TONO_MAP[st.tono]), st) ? TONO_MAP[st.tono] : q('tono').find(o => !valida('tono', o, st)).id;
-    ['cabello', 'antenas', 'ojos', 'alasPatron', 'paleta', 'luces'].forEach(k => { if (!q(k).find(o => o.id === st[k] && !valida(k, o, st))) st[k] = q(k).find(o => !valida(k, o, st)).id; });
-    if (st.base === 'actual' && st.cabello !== 'actual' && !['ovalada', 'cuadrada', 'visera'].includes(st.cabello)) st.cabello = 'actual';
-    ['alasBase', 'alasPunta', 'alasMancha', 'alasBorde'].forEach(z => { if (!zonasPara(z).find(x => x.id === st[z])) st[z] = PALETAS.natural[z]; });
-    if (!st.cabelloColor) st.cabelloColor = 'noche';
-    st.detalles = st.detalles.filter(d => d !== 'ninguno' && !valida('detalles', opt('detalles', d), st)).slice(0, 2);
+    CAT.preguntas.forEach(q => { if (!q.opciones.find(o => o.id === st[q.id])) st[q.id] = DEF[q.id] || q.opciones[0].id; });
     return st;
   }
-  const necesitaColorCabello = st => aplica('cabelloColor', st);
   function eleccionParaEnviar() {
-    const e = JSON.parse(JSON.stringify(S));
-    CAT.preguntas.forEach(q => { if (!aplica(q.id, e)) e[q.id] = q.multi ? [] : ''; });
-    if (!e.detalles.length) e.detalles = ['ninguno'];
-    return e;
+    const e = Object.assign({}, S);
+    CAT.preguntas.forEach(q => { if (!aplica(q.id, e)) e[q.id] = ''; });
+    return Object.fromEntries(CAT.preguntas.map(q => [q.id, e[q.id]]));
   }
+  const pinta = st => coerce(Object.assign({}, DEF, st));
 
   /* ---------- pantallas ---------- */
   const SCREENS = ['s-acceso', 's-bienvenida', 's-grid', 's-admin'];
@@ -57,12 +33,15 @@
     const g = $('navGaleria'); g.disabled = estado.galeria !== 'si'; g.classList.toggle('on', estado.galeria === 'si');
     g.title = estado.galeria === 'si' ? 'Mira los diseños que armaron tus compañeros' : 'Aún no está habilitada la galería';
     $('navResultados').hidden = !SES.colab;
+    $('rand').hidden = modo !== 'armador';
     ['navArmar', 'navGaleria', 'navResultados'].forEach(id => $(id).removeAttribute('aria-current'));
     if (modo === 'galeria') $('navGaleria').setAttribute('aria-current', 'page');
     else if (modo === 'resultados') $('navResultados').setAttribute('aria-current', 'page');
     else if (screen === 's-grid') $('navArmar').setAttribute('aria-current', 'page');
   }
-  function ensureAv() { if (!av) av = new AuroraEngine($('av'), S); return av; }
+  function ensureAv() { if (!av) av = new AuroraEngine($('stage'), S); return av; }
+  // muestra un diseño en la vista en vivo y su etiqueta (estilo · piel)
+  function mostrar(st, pop = true) { const d = pinta(st); ensureAv().set(d, pop); $('tag').textContent = `${nombreOpcion('estilo', d.estilo)} · ${nombreOpcion('piel', d.piel)}`; }
 
   /* ---------- acceso ---------- */
   async function cargarEstado() {
@@ -85,45 +64,24 @@
     $('stBienvenida').textContent = estado.rondaA !== 'abierta' ? 'La votación de características está cerrada. Puedes ver la galería si está habilitada.' : (c ? `Ya votaste como ${c.nombre}.` : '');
     $('stBienvenida').className = 'status ' + (estado.rondaA !== 'abierta' ? 'warn' : 'ok');
   }
-  $('bEmpezar').onclick = () => { modo = 'armador'; cur = 0; show('s-grid'); ensureAv().set(S); renderStep(); refreshNav(); setTimeout(() => av.greet(), 500); };
+  $('bEmpezar').onclick = () => { modo = 'armador'; cur = 0; show('s-grid'); mostrar(S); renderStep(); refreshNav(); setTimeout(() => av.greet(), 500); };
   $('bYaVote').onclick = () => verResultados();
-  $('navArmar').onclick = () => { modo = 'armador'; if (cur === CONFIRM) cur = DONE; $('nav').hidden = false; $('next').hidden = false; $('liveLabel').textContent = 'Vista en vivo'; show('s-grid'); ensureAv().set(S, false); renderStep(); refreshNav(); };
+  $('navArmar').onclick = () => { modo = 'armador'; if (cur === CONFIRM) cur = DONE; $('nav').hidden = false; $('next').hidden = false; $('liveLabel').textContent = 'Vista en vivo'; show('s-grid'); mostrar(S, false); renderStep(); refreshNav(); };
   $('navGaleria').onclick = () => verGaleria();
   $('navResultados').onclick = () => verResultados();
 
-  /* ---------- armador (v2) ---------- */
-  const ALL_STEPS = [
-    { q: 'base', vista: 'full' }, { q: 'nivel', vista: 'head' }, { q: 'alas', vista: 'full' }, { q: 'paleta', colores: true, vista: 'full' },
-    { q: 'tono', swOnly: true }, { q: 'cabello', sw: 'cabelloColor', vista: 'head', titulo: 'Peinado' }, { q: 'antenas', vista: 'head' }, { q: 'ojos', sw: 'ojosColor', vista: 'face', titulo: 'Estilo' },
-    { q: 'boca', vista: 'face' }, { q: 'detalles', vista: 'head', multi: 2 }, { q: 'personalidad', pers: true }];
+  /* ---------- armador (versión caribe: estilo, piel, cabello, ojos, luces del traje) ---------- */
+  const ALL_STEPS = CAT.preguntas.map(q => ({ q: q.id, vista: q.vista || 'full' }));
   const steps = () => ALL_STEPS.filter(st => aplica(st.q, S));
   const DONE = 99, CONFIRM = 100;
   let cur = 0, modo = 'armador', picked = null;
-  function tituloPaso(st) {
-    if (st.q === 'cabello') return S.nivel === 'robot' ? 'Carcasa' : S.base === 'mascota' ? 'Copete' : 'Cabello';
-    return Q(st.q).nombre;
-  }
-  function preguntaPaso(st) {
-    if (st.q === 'cabello') return S.nivel === 'robot' ? '¿Qué forma tiene la carcasa de su cabeza?' : S.base === 'mascota' ? '¿Lleva copete?' : '¿Cómo lleva el cabello?';
-    if (st.q === 'tono') return S.nivel === 'robot' ? '¿De qué color es su carcasa?' : S.base === 'mascota' ? '¿De qué color es su pelaje?' : '¿Qué tono de piel tiene?';
-    return Q(st.q).pregunta;
-  }
-  const ICON = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 17c-3-7-9-9-12-7-3 3 1 10 7 11-6 1-9 6-6 8 3 2 8-1 11-6 3 5 8 8 11 6 3-2 0-7-6-8 6-1 10-8 7-11-3-2-9 0-12 7z" fill="currentColor"/></svg>';
   function renderRail() {
     const L = steps(); $('rail').hidden = modo !== 'armador';
-    $('rail').innerHTML = L.map((s, i) => `<li><button type="button" data-go="${i}" ${i === cur ? 'aria-current="step"' : ''} class="${i < cur || cur >= DONE ? 'done' : ''}"><span>${i === cur ? ICON : i + 1}</span>${tituloPaso(s)}</button></li>`).join('');
+    const firma = `<li><button type="button" data-go="${DONE}" ${cur === DONE ? 'aria-current="step"' : ''}><span>${L.length + 1}</span>Firma</button></li>`;
+    $('rail').innerHTML = L.map((s, i) => `<li><button type="button" data-go="${i}" ${i === cur ? 'aria-current="step"' : ''} class="${i < cur || cur >= DONE ? 'done' : ''}"><span>${i + 1}</span>${html(Q(s.q).nombre)}</button></li>`).join('') + (cur === CONFIRM ? '' : firma);
   }
-  function swatchBtn(field, c, on, bg) { return `<button type="button" data-f="${field}" data-v="${c.id}" aria-pressed="${on}" aria-label="${html(c.nombre)}" title="${html(c.nombre)}" style="background:${bg}"></button>`; }
-  function swatches(field, title) {
-    const q = Q(field); const sel = opt(field, S[field]) || q.opciones[0];
-    return `<div class="block"><h2>${title || q.nombre}</h2><div class="sw">${q.opciones.map(c => { if (valida(field, c, S)) return ''; return swatchBtn(field, c, S[field] === c.id, c.grad ? `linear-gradient(135deg,${c.grad.join(',')})` : (field === 'luces' ? c.g : c.c)); }).join('')}</div><div class="sw-name">Elegido: <b>${html(sel.nombre)}</b></div></div>`;
-  }
-  function zonaSwatches(zid, title) {
-    const sel = ZONAS.find(z => z.id === S[zid]) || ZONAS[0];
-    return `<div class="block"><h2>${title}</h2><div class="sw">${zonasPara(zid).map(z => swatchBtn(zid, z, S[zid] === z.id, z.grad ? `linear-gradient(135deg,${z.grad.join(',')})` : z.c)).join('')}</div><div class="sw-name">Elegido: <b>${html(sel.nombre)}</b></div></div>`;
-  }
-  function optCard(field, o, c, vista, on, why, multi) {
-    return `<button type="button" class="opt" data-f="${field}" data-v="${o.id}" ${multi ? 'data-multi="1"' : ''} aria-pressed="${on}" ${why ? 'disabled' : ''}><div class="thumb">${why ? '' : thumbSVG(c, vista)}</div><b>${html(o.nombre)}</b>${o.sub ? `<small>${html(o.sub)}</small>` : ''}${why ? `<span class="why">${html(why)}</span>` : ''}</button>`;
+  function optCard(field, o, c, vista, on) {
+    return `<button type="button" class="opt" data-f="${field}" data-v="${o.id}" aria-pressed="${on}">${thumbHTML(c, vista)}<b>${o.c ? `<i class="dot-c" style="background:${o.c}"></i>` : ''}${html(o.nombre)}</b>${o.sub ? `<small>${html(o.sub)}</small>` : ''}</button>`;
   }
   function renderStep() {
     renderRail(); const body = $('body'); $('nav').hidden = false; $('back').disabled = cur === 0; $('next').disabled = false; $('next').hidden = false;
@@ -131,47 +89,13 @@
     if (cur === CONFIRM) return renderConfirmacion();
     const L = steps(); if (cur >= L.length) cur = L.length - 1;
     const st = L[cur], q = Q(st.q);
-    $('eyebrow').textContent = `Paso ${cur + 1} de ${L.length}`; $('q').textContent = preguntaPaso(st); $('help').textContent = q.ayuda;
-    let h = '';
-    const copia = () => coerce(JSON.parse(JSON.stringify(S)));
-    if (st.pers) {
-      h += `<div class="pers">${q.opciones.map(o => `<button type="button" class="opt" data-f="personalidad" data-v="${o.id}" aria-pressed="${S.personalidad === o.id}"><b>${o.nombre}</b><small>${o.sub}</small></button>`).join('')}</div>`;
-    } else if (st.colores) {
-      h += `<div class="block"><h2>Paletas de Aurora</h2><div class="opts">${q.opciones.map(o => { const c = copia(); c.paleta = o.id; aplicarPaleta(c); return optCard('paleta', o, c, 'full', S.paleta === o.id, null); }).join('')}</div></div>`;
-      if (S.paleta === 'personalizada') {
-        h += zonaSwatches('alasBase', 'Base de las alas') + zonaSwatches('alasPunta', 'Punta de las alas');
-        if (aplica('alasMancha', S)) h += zonaSwatches('alasMancha', 'Mancha');
-        if (aplica('alasBorde', S)) h += zonaSwatches('alasBorde', 'Borde');
-      }
-      const qp = Q('alasPatron');
-      h += `<div class="block"><h2>Patrón</h2><div class="opts">${qp.opciones.map(o => { const c = copia(); c.alasPatron = o.id; return optCard('alasPatron', o, c, 'full', S.alasPatron === o.id, valida('alasPatron', o, S)); }).join('')}</div></div>`;
-      if (aplica('luces', S)) h += swatches('luces', 'Luces (LED y pantalla)');
-    } else if (!st.swOnly) {
-      h += `<div class="block">${st.sw ? `<h2>${st.titulo || 'Forma'}</h2>` : ''}<div class="opts">${q.opciones.map(o => {
-        const why = valida(st.q, o, S);
-        const c = copia(); let on;
-        if (st.multi) { if (o.id === 'ninguno') { on = !S.detalles.length; c.detalles = []; } else { on = S.detalles.includes(o.id); c.detalles = [o.id]; } }
-        else { c[st.q] = o.id; on = S[st.q] === o.id; coerce(c); if (st.q === 'alas') aplicarPaleta(c); }
-        return optCard(st.q, o, c, st.vista, on, why, st.multi);
-      }).join('')}</div></div>`;
-    }
-    if (st.sw === 'cabelloColor' && necesitaColorCabello(S)) h += swatches('cabelloColor', 'Color del cabello');
-    if (st.sw === 'ojosColor') h += aplica('ojosColor', S) ? swatches('ojosColor', 'Color de ojos') : (aplica('luces', S) ? swatches('luces', 'Color de la luz') : '');
-    if (st.swOnly) h += swatches('tono', S.nivel === 'robot' ? 'Carcasa' : S.base === 'mascota' ? 'Pelaje' : 'Piel');
-    body.innerHTML = h;
-    $('next').textContent = cur === L.length - 1 ? 'Revisar mi diseño' : 'Siguiente';
+    $('eyebrow').textContent = `Paso ${cur + 1} de ${L.length + 1}`; $('q').textContent = q.pregunta; $('help').textContent = q.ayuda;
+    body.innerHTML = `<div class="opts">${q.opciones.map(o => optCard(st.q, o, pinta(Object.assign({}, S, { [st.q]: o.id })), st.vista, S[st.q] === o.id)).join('')}</div>`;
+    $('next').textContent = cur === L.length - 1 ? 'Revisar y firmar' : 'Siguiente';
   }
   $('body').addEventListener('click', e => {
     const b = e.target.closest('button[data-f]'); if (!b || b.disabled) return;
-    const fld = b.dataset.f, v = b.dataset.v;
-    if (b.dataset.multi) {
-      if (v === 'ninguno') S.detalles = [];
-      else { const i = S.detalles.indexOf(v); if (i >= 0) S.detalles.splice(i, 1); else if (S.detalles.length >= 2) { toast('Máximo 2 detalles. Quita uno para cambiarlo.'); return; } else S.detalles.push(v); }
-    } else S[fld] = v;
-    if (['alasBase', 'alasPunta', 'alasMancha', 'alasBorde'].includes(fld)) S.paleta = 'personalizada';
-    if (fld === 'paleta' || fld === 'alas') aplicarPaleta(S);
-    coerce(S); ensureAv().set(S); renderStep();
-    if (fld === 'base' || fld === 'nivel' || fld === 'personalidad' || fld === 'alas') av.greet();
+    S[b.dataset.f] = b.dataset.v; coerce(S); mostrar(S); renderStep();
   });
   $('rail').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b) return; cur = +b.dataset.go; renderStep(); });
   $('next').onclick = () => {
@@ -184,34 +108,15 @@
   };
   $('back').onclick = () => { if (modo !== 'armador') return; if (cur === DONE) cur = steps().length - 1; else if (cur > 0) cur--; renderStep(); };
   $('rand').onclick = () => {
-    const pick = q => { const l = Q(q).opciones.filter(o => !valida(q, o, S)); return l[Math.floor(Math.random() * l.length)].id; };
-    S.base = pick('base'); S.nivel = pick('nivel'); ['alas', 'paleta', 'alasPatron', 'luces', 'tono', 'cabello', 'cabelloColor', 'antenas', 'ojos', 'ojosColor', 'boca', 'personalidad'].forEach(k => { S[k] = pick(k); });
-    if (S.paleta === 'personalizada') ['alasBase', 'alasPunta', 'alasMancha', 'alasBorde'].forEach(z => { const l = zonasPara(z); S[z] = l[Math.floor(Math.random() * l.length)].id; });
-    aplicarPaleta(S);
-    S.detalles = Q('detalles').opciones.filter(o => o.id !== 'ninguno' && !valida('detalles', o, S) && Math.random() < .35).map(o => o.id).slice(0, 2);
-    coerce(S); ensureAv().set(S); if (modo === 'armador') renderStep(); av.greet();
+    CAT.preguntas.forEach(q => { S[q.id] = q.opciones[Math.floor(Math.random() * q.opciones.length)].id; });
+    mostrar(S); if (modo === 'armador' && screen === 's-grid') renderStep();
   };
-  $('stage').addEventListener('click', e => { const b = e.target.closest('[data-act],[data-expr]'); if (!b || !av) return; if (b.dataset.act === 'wave') av.greet(); else if (b.dataset.act === 'look') av.lookAround(); else av.setExpression(b.dataset.expr); });
 
   /* ---------- ficha ---------- */
-  const nombreOpcion = (q, id) => { const Qq = Q(q); if (Qq && Qq.tipo === 'zona') { const z = ZONAS.find(x => x.id === id); return z ? z.nombre : (id || '—'); } const o = opt(q, id); return o ? o.nombre : (id || '—'); };
+  const nombreOpcion = (q, id) => { const o = opt(q, id); return o ? o.nombre : (id || '—'); };
   function fichaHTML(e) {
-    const alas = conAlas(e);
-    const rows = [['Base', nombreOpcion('base', e.base)], ['Nivel', nombreOpcion('nivel', e.nivel)], ['Alas', nombreOpcion('alas', e.alas)]];
-    if (alas) {
-      const zonas = [['base', e.alasBase], ['punta', e.alasPunta]].concat(['mancha', 'moteado'].includes(e.alasPatron) ? [['mancha', e.alasMancha]] : []).concat(e.alasPatron === 'moteado' ? [['borde', e.alasBorde]] : []);
-      rows.push(['Colores', e.paleta === 'personalizada' ? 'Personalizada: ' + zonas.map(([k, v]) => `${k} ${nombreOpcion('alas' + k[0].toUpperCase() + k.slice(1), v).toLowerCase()}`).join(', ') : nombreOpcion('paleta', e.paleta)]);
-      rows.push(['Patrón', nombreOpcion('alasPatron', e.alasPatron)]);
-    }
-    if (aplica('luces', e)) rows.push(['Luces', nombreOpcion('luces', e.luces)]);
-    rows.push([e.nivel === 'robot' ? 'Carcasa' : e.base === 'mascota' ? 'Pelaje' : 'Piel', nombreOpcion('tono', e.tono)]);
-    rows.push([e.nivel === 'robot' ? 'Cabeza' : e.base === 'mascota' ? 'Copete' : 'Cabello', nombreOpcion('cabello', e.cabello) + (aplica('cabelloColor', e) && e.cabelloColor ? ' · ' + nombreOpcion('cabelloColor', e.cabelloColor) : '')]);
-    rows.push(['Antenas', nombreOpcion('antenas', e.antenas)]);
-    rows.push(['Ojos', nombreOpcion('ojos', e.ojos) + (aplica('ojosColor', e) ? ' · ' + nombreOpcion('ojosColor', e.ojosColor) : '')]);
-    rows.push(['Boca', nombreOpcion('boca', e.boca)]);
-    const det = (e.detalles || []).filter(d => d !== 'ninguno');
-    rows.push(['Detalles', det.length ? det.map(d => nombreOpcion('detalles', d)).join(', ') : 'Ninguno'], ['Personalidad', nombreOpcion('personalidad', e.personalidad)]);
-    return `<div class="ficha"><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${html(v)}</dd>`).join('')}</dl></div>`;
+    const rows = CAT.preguntas.filter(q => aplica(q.id, e)).map(q => [q.id === 'lineas' ? 'Luces del traje' : q.nombre, nombreOpcion(q.id, e[q.id])]);
+    return `<div class="ficha"><dl>${rows.map(([k, v]) => `<dt>${html(k)}</dt><dd>${html(v)}</dd>`).join('')}</dl><div class="code">${html(codigo(pinta(e)))}</div></div>`;
   }
 
   /* ---------- combobox de colaboradores ---------- */
@@ -292,19 +197,19 @@
     estado = r.estado || estado; refreshNav();
     const n = r.participacion.votos, tot = r.participacion.colaboradores;
     $('help').textContent = `${n} ${n === 1 ? 'voto' : 'votos'} de ${tot} colaboradores (${pct(n, tot)}%). ${estado.rondaA === 'abierta' ? 'La votación sigue abierta.' : 'La votación está cerrada.'}`;
-    const G = limpiar(r.ganador); const g = coerce(Object.assign(JSON.parse(JSON.stringify(DEF)), G, { detalles: (G.detalles || []).filter(d => d !== 'ninguno') }));
+    const G = limpiar(r.ganador); const g = pinta(G);
     const preguntas = CAT.preguntas.filter(p => Object.keys(r.conteo[p.id] || {}).length);
-    const wins = preguntas.map(p => { const cnt = r.conteo[p.id] || {}; const pares = Object.entries(cnt).sort((a, b) => b[1] - a[1]); if (!pares.length) return ''; const tie = r.empates && r.empates[p.id]; const w = p.id === 'detalles' ? pares.slice(0, 2) : [pares.find(x => x[0] === G[p.id]) || pares[0]];
+    const wins = preguntas.map(p => { const cnt = r.conteo[p.id] || {}; const pares = Object.entries(cnt).sort((a, b) => b[1] - a[1]); if (!pares.length) return ''; const tie = r.empates && r.empates[p.id]; const w = [pares.find(x => x[0] === G[p.id]) || pares[0]];
       return `<div class="win ${tie ? 'tie' : ''}"><small>${html(p.nombre)}</small>${w.map(([id, k]) => `<b>${html(nombreOpcion(p.id, id))}</b><span class="pct">${k} · ${pct(k, n)}%</span>`).join('')}${tie ? `<span class="pct" style="color:var(--warn)">Empate</span>` : ''}</div>`; }).join('');
-    const top3 = (r.top3 || []).map((d, i) => `<button type="button" class="card" data-top="${i}"><div class="thumb">${thumbSVG(d.eleccion, 'full')}</div><span class="votes">${d.n} ${d.n === 1 ? 'voto' : 'votos'}</span><span class="n">Diseño completo #${i + 1}</span></button>`).join('');
-    $('body').innerHTML = `<div class="kpis"><div class="kpi"><small>Votos</small><b>${n}</b></div><div class="kpi"><small>Participación</small><b>${pct(n, tot)}%</b></div><div class="kpi"><small>Diseños distintos</small><b>${Object.keys(r.conteo.base || {}).length ? (r.top3 || []).length >= 3 ? '3+' : (r.top3 || []).length : 0}</b></div></div>
+    const top3 = (r.top3 || []).map((d, i) => `<button type="button" class="card" data-top="${i}">${thumbHTML(pinta(d.eleccion), 'full')}<span class="votes">${d.n} ${d.n === 1 ? 'voto' : 'votos'}</span><span class="n">Diseño completo #${i + 1}</span></button>`).join('');
+    $('body').innerHTML = `<div class="kpis"><div class="kpi"><small>Votos</small><b>${n}</b></div><div class="kpi"><small>Participación</small><b>${pct(n, tot)}%</b></div><div class="kpi"><small>Diseños distintos</small><b>${r.distintos != null ? r.distintos : ((r.top3 || []).length >= 3 ? '3+' : (r.top3 || []).length)}</b></div></div>
       <div class="block"><h2>Diseño ganador por consenso</h2><p class="hint">Se arma con la opción más votada de cada pregunta. Está en la vista en vivo.</p><div class="row"><button class="ghost" type="button" id="verGanador">Ver en vivo</button></div></div>
       <div class="block"><h2>Lo más elegido por pregunta</h2><div class="winners">${wins}</div></div>
       <div class="block"><h2>Los diseños completos más repetidos</h2>${top3 ? `<div class="cards">${top3}</div>` : '<p class="hint">Aún no hay diseños repetidos.</p>'}</div>
       ${estado.galeria === 'si' ? `<div class="row"><button class="primary" type="button" id="irGaleria">Ver diseños de tus compañeros</button></div>` : ''}`;
-    ensureAv().set(g); av.greet();
-    $('verGanador').onclick = () => { av.set(g); av.greet(); };
-    $('body').querySelectorAll('[data-top]').forEach(b => { b.onclick = () => { av.set(r.top3[+b.dataset.top].eleccion); av.greet(); }; });
+    mostrar(g);
+    $('verGanador').onclick = () => mostrar(g);
+    $('body').querySelectorAll('[data-top]').forEach(b => { b.onclick = () => mostrar(r.top3[+b.dataset.top].eleccion); });
     const ig = $('irGaleria'); if (ig) ig.onclick = () => verGaleria();
   }
 
@@ -325,7 +230,7 @@
     const orden = resB ? r.disenos.slice().sort((a, b) => votosDe(b.disenoId) - votosDe(a.disenoId)) : r.disenos;
     $('help').textContent = `${r.disenos.length} ${r.disenos.length === 1 ? 'diseño enviado' : 'diseños enviados'}. Sin nombres: cada diseño tiene un número.` + (abiertaB ? ' La ronda de diseños está abierta: elige uno y vota.' : estado.rondaB === 'no_iniciada' ? ' La ronda de votación por diseño aún no empieza.' : ' La ronda de diseños está cerrada.');
     let sel = null;
-    const cards = orden.map((d, i) => `<button type="button" class="card" data-id="${d.disenoId}" aria-pressed="false">${propios.has(d.disenoId) ? '<span class="tag">Tu diseño</span>' : ''}<div class="thumb">${thumbSVG(d.eleccion, 'full')}</div><span class="n">Diseño ${String(r.disenos.indexOf(d) + 1).padStart(3, '0')}</span>${resB ? `<span class="votes">${votosDe(d.disenoId)} ${votosDe(d.disenoId) === 1 ? 'voto' : 'votos'}</span>` : ''}</button>`).join('');
+    const cards = orden.map((d, i) => `<button type="button" class="card" data-id="${d.disenoId}" aria-pressed="false">${propios.has(d.disenoId) ? '<span class="tag">Tu diseño</span>' : ''}${thumbHTML(pinta(d.eleccion), 'full')}<span class="n">Diseño ${String(r.disenos.indexOf(d) + 1).padStart(3, '0')}</span>${resB ? `<span class="votes">${votosDe(d.disenoId)} ${votosDe(d.disenoId) === 1 ? 'voto' : 'votos'}</span>` : ''}</button>`).join('');
     $('body').innerHTML = `${resB ? `<div class="kpis"><div class="kpi"><small>Votos por diseño</small><b>${resB.participacion.votos}</b></div><div class="kpi"><small>Diseño más votado</small><b>${resB.podio[0] ? 'Diseño ' + String(r.disenos.findIndex(d => d.disenoId === resB.podio[0].disenoId) + 1).padStart(3, '0') : '—'}</b></div></div>` : ''}
       <div class="cards" id="gal">${cards || '<p class="hint">Aún no hay diseños.</p>'}</div>
       ${abiertaB && !yaVotoB ? `<div class="block" id="votoB"><h2>Vota por un diseño</h2><p class="hint" id="selB">Toca un diseño para verlo en vivo y seleccionarlo. No puedes votar por el tuyo.</p><div id="cbB"></div><p class="status" id="stB" aria-live="polite"></p><div class="row"><button class="primary" type="button" id="bVotarB" disabled>Votar por este diseño</button></div><p class="hint"><b>Tu voto es definitivo.</b></p></div>` : ''}
@@ -333,7 +238,7 @@
     let pickedB = c ? { id: c.id, nombre: c.nombre } : null;
     const upd = () => { const b = $('bVotarB'); if (b) b.disabled = !(sel && pickedB && !propios.has(sel)); };
     if (abiertaB && !yaVotoB) { if (!c) combobox($('cbB'), 'B', p => { pickedB = p; upd(); }); else $('cbB').innerHTML = `<div class="picked"><div><small class="hint">Votas como</small><br><b>${html(c.nombre)}</b></div></div>`; }
-    $('gal').addEventListener('click', e => { const b = e.target.closest('.card'); if (!b) return; sel = b.dataset.id; $('gal').querySelectorAll('.card').forEach(x => x.setAttribute('aria-pressed', x === b)); const d = r.disenos.find(x => x.disenoId === sel); ensureAv().set(d.eleccion); av.greet();
+    $('gal').addEventListener('click', e => { const b = e.target.closest('.card'); if (!b) return; sel = b.dataset.id; $('gal').querySelectorAll('.card').forEach(x => x.setAttribute('aria-pressed', x === b)); const d = r.disenos.find(x => x.disenoId === sel); mostrar(d.eleccion);
       const s = $('selB'); if (s) s.textContent = propios.has(sel) ? 'Este es tu diseño: no puedes votar por él.' : `Seleccionaste el diseño ${String(r.disenos.indexOf(d) + 1).padStart(3, '0')}.`; upd(); });
     const bv = $('bVotarB'); let conf = false;
     if (bv) bv.onclick = async () => {
@@ -344,7 +249,7 @@
       if (!rv.ok) { st.textContent = rv.mensaje || 'No se pudo guardar.'; st.className = 'status bad'; bv.disabled = false; conf = false; bv.textContent = 'Votar por este diseño'; return; }
       SES.colab = pickedB; const cc = colabs.find(x => x.id === pickedB.id); if (cc) cc.votoB = true; toast('Voto guardado'); av.greet(); verGaleria();
     };
-    if (orden[0]) { ensureAv().set(orden[0].eleccion, false); }
+    if (orden[0]) mostrar(orden[0].eleccion, false);
   }
 
   /* ---------- panel del dueño ---------- */
@@ -362,18 +267,18 @@
     estado = r.estado; const A = r.resultadosA, B = r.resultadosB;
     const seg = (prop, vals, labels) => `<div class="seg">${vals.map((x, i) => `<button type="button" data-prop="${prop}" data-val="${x}" aria-pressed="${estado[{ RONDA_A: 'rondaA', GALERIA: 'galeria', RONDA_B: 'rondaB' }[prop]] === x}">${labels[i]}</button>`).join('')}</div>`;
     const G = limpiar(A.ganador), n = A.participacion.votos;
-    const g = coerce(Object.assign(JSON.parse(JSON.stringify(DEF)), G, { detalles: (G.detalles || []).filter(d => d !== 'ninguno') }));
+    const g = pinta(G);
     const empates = Object.entries(A.empates || {});
     const tablaA = v.votosA.map(x => `<tr class="${x.anulado ? 'off' : ''}"><td>${html(x.nombre)}</td><td class="mini">${html(String(x.fecha).replace('T', ' ').slice(0, 16))}</td><td class="mini">${html(Object.entries(x.eleccion).map(([k, val]) => `${k}:${Array.isArray(val) ? val.join('+') : val}`).join(' '))}</td><td>${x.anulado ? 'Anulado' : `<button class="danger" type="button" data-anular="${x.votoId}">Anular</button>`}</td></tr>`).join('');
     const tablaB = v.votosB.map(x => `<tr class="${x.anulado ? 'off' : ''}"><td>${html(x.nombre)}</td><td class="mini">${html(String(x.fecha).replace('T', ' ').slice(0, 16))}</td><td class="mini">${html(x.disenoId)}</td><td>${x.anulado ? 'Anulado' : `<button class="danger" type="button" data-anular="${x.votoId}">Anular</button>`}</td></tr>`).join('');
-    const podio = (B.podio || []).slice(0, 5).map((d, i) => `<div class="card" style="cursor:default"><div class="thumb">${d.eleccion ? thumbSVG(d.eleccion, 'full') : ''}</div><span class="votes">${d.n} ${d.n === 1 ? 'voto' : 'votos'}</span><span class="n">${html(d.disenoId)} · ${html((v.votosA.find(x => x.votoId === d.disenoId) || {}).nombre || '')}</span></div>`).join('');
+    const podio = (B.podio || []).slice(0, 5).map((d, i) => `<div class="card" style="cursor:default">${d.eleccion ? thumbHTML(pinta(d.eleccion), 'full') : '<div class="thumb"></div>'}<span class="votes">${d.n} ${d.n === 1 ? 'voto' : 'votos'}</span><span class="n">${html(d.disenoId)} · ${html((v.votosA.find(x => x.votoId === d.disenoId) || {}).nombre || '')}</span></div>`).join('');
     p.innerHTML = `<div class="head"><span class="eyebrow">Panel del dueño</span><h1>Operación de la votación</h1><p>${n} votos de características · ${B.participacion.votos} votos por diseño · ${v.colaboradores.length} colaboradores.</p></div>
       <div class="switches">
         <div class="switch"><b>Ronda A · características</b><span class="state">${estado.rondaA}</span>${seg('RONDA_A', ['abierta', 'cerrada'], ['Abierta', 'Cerrada'])}</div>
         <div class="switch"><b>Galería "Ver diseños"</b><span class="state">${estado.galeria === 'si' ? 'habilitada' : 'deshabilitada'}</span>${seg('GALERIA', ['no', 'si'], ['Deshabilitada', 'Habilitada'])}</div>
         <div class="switch"><b>Ronda B · diseño completo</b><span class="state">${estado.rondaB}</span>${seg('RONDA_B', ['no_iniciada', 'abierta', 'cerrada'], ['Sin iniciar', 'Abierta', 'Cerrada'])}</div>
       </div>
-      <div class="block"><h2>Ganador por consenso (ronda A)</h2><div class="grid" style="grid-template-columns:minmax(0,320px) minmax(0,1fr)"><div class="thumb" id="adminThumb">${thumbSVG(g, 'full')}</div><div class="block">${fichaHTML(g)}<div class="row"><button class="primary" type="button" id="expPng">Exportar PNG (alta resolución)</button><button class="ghost" type="button" id="expJson">Descargar paquete (JSON del diseño)</button></div><p class="hint">El paquete de capas completo se genera con <code>pipeline/export_ganador.py</code> a partir del JSON.</p></div></div></div>
+      <div class="block"><h2>Ganador por consenso (ronda A)</h2><div class="grid" style="grid-template-columns:minmax(0,320px) minmax(0,1fr)"><div id="adminThumb">${thumbHTML(g, 'full')}</div><div class="block">${fichaHTML(g)}<div class="row"><button class="primary" type="button" id="expPng">Exportar PNG (800 × 800)</button><button class="ghost" type="button" id="expJson">Descargar paquete (JSON del diseño)</button></div><p class="hint">El PNG se arma con las mismas capas que se votaron, a la resolución original de las imágenes (800 × 800). El JSON trae la elección ganadora y su código.</p></div></div></div>
       ${empates.length ? `<div class="block"><h2>Empates por resolver</h2>${empates.map(([q, ops]) => `<div class="row"><span>${html(Q(q).nombre)}:</span><div class="seg">${ops.map(o => `<button type="button" data-des="${q}" data-op="${o}" aria-pressed="${(A.desempates || {})[q] === o}">${html(nombreOpcion(q, o))}</button>`).join('')}</div></div>`).join('')}</div>` : '<p class="hint">No hay empates en la ronda A.</p>'}
       <div class="block"><h2>Podio ronda B</h2>${podio ? `<div class="cards">${podio}</div>` : '<p class="hint">Aún no hay votos por diseño.</p>'}</div>
       <div class="block"><h2>Votos ronda A</h2><div class="row"><button class="ghost" type="button" data-csv="A">Exportar CSV ronda A</button><button class="ghost" type="button" data-csv="B">Exportar CSV ronda B</button></div><div class="wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Fecha</th><th>Elecciones</th><th></th></tr></thead><tbody>${tablaA || '<tr><td colspan="4">Sin votos</td></tr>'}</tbody></table></div></div>
@@ -387,24 +292,10 @@
     $('adminRefrescar').onclick = () => verAdmin();
     $('adminCerrar').onclick = () => { SES.admin = ''; location.hash = ''; salirAdmin(); };
     $('adminReset').onclick = async () => { const t = prompt('Esto borra todos los votos y marcas. Escribe BORRAR TODO para confirmar.'); if (t === null) return; const r2 = await API.admin({ op: 'reiniciar', confirmar: t }); toast(r2.ok ? 'Votos borrados' : (r2.mensaje || 'No se borró')); verAdmin(); };
-    $('expJson').onclick = () => descargar('aurora-ganadora.json', new Blob([JSON.stringify({ version: CAT.version, diseno: g, resultados: { participacion: A.participacion, ganador: A.ganador, desempates: A.desempates, podioB: B.podio } }, null, 2)], { type: 'application/json' }));
-    $('expPng').onclick = async () => { toast('Generando PNG…'); try { const blob = await exportarPNG(g, 3); descargar('aurora-ganadora.png', blob); } catch (e) { toast('No se pudo exportar: ' + e.message); } };
+    $('expJson').onclick = () => descargar('aurora-ganadora.json', new Blob([JSON.stringify({ version: CAT.version, catalogo: CAT.nombre, diseno: g, codigo: codigo(g), resultados: { participacion: A.participacion, ganador: A.ganador, desempates: A.desempates, podioB: B.podio } }, null, 2)], { type: 'application/json' }));
+    $('expPng').onclick = async () => { toast('Generando PNG…'); try { const blob = await window.AuroraCompose.png(g, 1); descargar('aurora-ganadora.png', blob); } catch (e) { toast('No se pudo exportar: ' + e.message); } };
   }
   function descargar(nombre, blob) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
-  async function exportarPNG(st, escala) {
-    // Serializa el SVG con las imágenes embebidas (data URI) y lo dibuja en un canvas: mismas capas, mismo tinte.
-    const b = window.AuroraCompose.build(st, 'x'); const vb = window.AuroraCompose.viewBox(st, 'full').split(' ').map(Number);
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${vb.join(' ')}" width="${vb[2] * escala}" height="${vb[3] * escala}">${b.svg}</svg>`;
-    const hrefs = [...new Set([...svg.matchAll(/href="([^"]+\.webp)"/g)].map(m => m[1]))];
-    for (const h of hrefs) { const blob = await (await fetch(h)).blob(); const data = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); }); svg = svg.split(`href="${h}"`).join(`href="${data}"`); }
-    const img = new Image(); const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-    await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('SVG no cargó')); img.src = url; });
-    try { await img.decode(); } catch (e) {}
-    await new Promise(r => setTimeout(r, 600));
-    const c = document.createElement('canvas'); c.width = Math.round(vb[2] * escala); c.height = Math.round(vb[3] * escala); const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, c.width, c.height);
-    await new Promise(r => setTimeout(r, 400)); ctx.clearRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
-    return new Promise(res => c.toBlob(res, 'image/png'));
-  }
 
   /* ---------- arranque ---------- */
   async function salirAdmin() { if (SES.token && await cargarEstado()) entrar(); else show('s-acceso'); }

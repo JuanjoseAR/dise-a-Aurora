@@ -9,14 +9,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 17c-3-7-9-9-12-7-3 3 1 10 7 11-6 1-9 6-6 8 3 2 8-1 11-6 3 5 8 8 11 6 3-2 0-7-6-8 6-1 10-8 7-11-3-2-9 0-12 7z' fill='%237DF6FB'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 30'%3E%3Cpath d='M19 15C14 4 3 1 2 7c-1 5 4 8 9 8-5 1-8 5-6 9 3 5 11 0 14-9zM19 15C24 4 35 1 36 7c1 5-4 8-9 8 5 1 8 5 6 9-3 5-11 0-14-9z' fill='%23F4F7F7'/%3E%3Cpath d='M2 7c1-6 9-4 13 2-5 1-9 1-13-2zM36 7c-1-6-9-4-13 2 5 1 9 1 13-2z' fill='%23F08A0C'/%3E%3C/svg%3E">
 </head>
 <body>
 <div class="app">
   <header class="top">
     <div class="brand">
-      <span class="mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 17c-3-7-9-9-12-7-3 3 1 10 7 11-6 1-9 6-6 8 3 2 8-1 11-6 3 5 8 8 11 6 3-2 0-7-6-8 6-1 10-8 7-11-3-2-9 0-12 7z" fill="#7DF6FB"/><path d="M16 9v16" stroke="#A98BFF" stroke-width="2.2" stroke-linecap="round"/><path d="M13 7l3 3 3-3" fill="none" stroke="#A98BFF" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-      <div><b>Arma a Aurora</b><small id="subtitle">¿Cómo te imaginas a Aurora? Respóndelo y se arma sola.</small></div>
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 38 30"><path d="M19 15C14 4 3 1 2 7c-1 5 4 8 9 8-5 1-8 5-6 9 3 5 11 0 14-9z" fill="#F4F7F7"/><path d="M19 15C24 4 35 1 36 7c1 5-4 8-9 8 5 1 8 5 6 9-3 5-11 0-14-9z" fill="#F4F7F7"/><path d="M2 7c1-6 9-4 13 2-5 1-9 1-13-2zM36 7c-1-6-9-4-13 2 5 1 9 1 13-2z" fill="#F08A0C"/><rect x="18" y="8" width="2" height="16" rx="1" fill="#2B3033"/></svg></span>
+      <div><b>Arma a Aurora</b><small id="subtitle">Elige sus rasgos y mira cómo cambia en vivo.</small></div>
     </div>
     <nav class="topnav" id="topnav" hidden>
       <button class="navbtn" id="navArmar" type="button">Mi diseño</button>
@@ -39,15 +39,15 @@
 
   <!-- Bienvenida -->
   <section class="panel narrow" id="s-bienvenida" hidden>
-    <div class="head"><span class="eyebrow">Bienvenida</span><h1>¿Cómo te imaginas a Aurora?</h1><p>Aurora es la asistente de la CCSM: saluda y conversa con las personas que reconoce. Vamos a decidir juntos cómo se ve. Su concepto es la mariposa aurora: alas blancas con la punta naranja. Las alas, antenas, cabello y detalles son accesorios: puedes ponerlos o no.</p></div>
+    <div class="head"><span class="eyebrow">Bienvenida</span><h1>¿Cómo te imaginas a Aurora?</h1><p>Aurora es la asistente de la CCSM: saluda y conversa con las personas que reconoce. Vamos a decidir juntos cómo se ve: su estilo, su tono de piel, su cabello, sus ojos y las luces de su traje.</p></div>
     <div class="welcome">
       <div class="kpi"><small>Qué vas a hacer</small><b>Armarla paso a paso</b></div>
       <div class="kpi"><small>Tu diseño</small><b>Cuenta como voto</b></div>
       <div class="kpi"><small>Cuántos votos</small><b>Uno por persona</b></div>
-      <div class="kpi"><small>Cuánto toma</small><b>Unos 3 minutos</b></div>
+      <div class="kpi"><small>Cuánto toma</small><b>Unos 2 minutos</b></div>
     </div>
     <ol class="steps-list">
-      <li>Respondes hasta 11 preguntas y ves a Aurora armarse en vivo.</li>
+      <li>Respondes hasta 5 preguntas y ves a Aurora cambiar en vivo.</li>
       <li>Revisas tu ficha, eliges tu nombre de la lista y envías tu voto. Es definitivo.</li>
       <li>Después de votar ves cómo va la votación.</li>
     </ol>
@@ -57,21 +57,15 @@
 
   <!-- Armador / revisión / confirmación / resultados / galería -->
   <main class="grid" id="s-grid" hidden>
-    <section class="stage" id="stage" aria-label="Vista en vivo de Aurora">
-      <div class="stage-top"><span class="live"><i></i><span id="liveLabel">Vista en vivo</span></span><button class="ghost" id="rand" type="button">Sorpréndeme</button></div>
-      <svg class="av" id="av" role="img" aria-label="Diseño de Aurora"></svg>
-      <div class="stage-bottom">
-        <button class="chip wave" type="button" data-act="wave">Saludar</button>
-        <button class="chip" type="button" data-act="look">Mirar alrededor</button>
-        <button class="chip" type="button" data-expr="feliz">Feliz</button>
-        <button class="chip" type="button" data-expr="sorpresa">Sorpresa</button>
-        <button class="chip" type="button" data-expr="pensando">Pensando</button>
-      </div>
+    <section class="studio" id="stage" aria-label="Vista en vivo de Aurora">
+      <div class="studio-top"><span class="live"><i></i><span id="liveLabel">Vista en vivo</span></span><span class="tag" id="tag"></span></div>
+      <div class="figure" id="av"><div class="sway"><div class="stack"></div></div></div>
+      <div class="studio-bottom"><button class="chip" id="rand" type="button">Sorpréndeme</button></div>
     </section>
     <section class="panel" id="panel" aria-live="polite">
       <div class="head"><span class="eyebrow" id="eyebrow"></span><h1 id="q"></h1><p id="help"></p></div>
       <ol class="rail" id="rail" aria-label="Pasos" hidden></ol>
-      <div id="body" class="block" style="gap:22px"></div>
+      <div id="body" class="block" style="gap:18px"></div>
       <nav class="nav" id="nav"><button class="ghost" id="back" type="button">Atrás</button><button class="primary" id="next" type="button">Siguiente</button></nav>
     </section>
   </main>

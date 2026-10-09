@@ -1,4 +1,4 @@
-/* Mundo visual de Aurora: azul noche, luz cian, acentos violeta de mariposa. Un solo tema oscuro a propósito. */
+/* Mundo visual de Aurora (versión caribe): cromo en azul noche, estudio claro para la figura, acento naranja aurora y luz cian. Un solo tema a propósito. */
 :root{
   color-scheme:dark;
   --night:#050B1F; --deep:#0B1634; --raised:#122352;
@@ -31,18 +31,30 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px so
 .navbtn[aria-current="page"]{background:var(--naranja);color:var(--on-naranja);border-color:var(--naranja)}
 
 .grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:20px;align-items:start}
-.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + 14px);height:min(700px,calc(100vh - 110px));min-height:440px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);
-  background:radial-gradient(60% 45% at 50% 38%,rgba(125,246,251,.15),transparent 70%),radial-gradient(50% 40% at 80% 85%,rgba(240,138,12,.12),transparent 70%),linear-gradient(180deg,#0A1636,#040A1C);isolation:isolate}
-.stage::before{content:"";position:absolute;inset:0;z-index:-1;background-image:radial-gradient(rgba(125,246,251,.18) 1px,transparent 1.4px);background-size:22px 22px;-webkit-mask-image:radial-gradient(70% 60% at 50% 45%,#000,transparent 80%);mask-image:radial-gradient(70% 60% at 50% 45%,#000,transparent 80%);opacity:.55}
-.stage svg.av{position:absolute;inset:48px 12px 70px;width:calc(100% - 24px);height:calc(100% - 118px);display:block;cursor:pointer}
-.stage-top{position:absolute;top:14px;left:16px;right:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.live{display:inline-flex;align-items:center;gap:8px;font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.live i{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:pulse 2s ease-in-out infinite}
+/* Estudio claro (versión caribe): la pila de capas se multiplica sobre el fondo, así el blanco de la imagen base desaparece */
+.studio{position:sticky;top:calc(env(safe-area-inset-top,0px) + 14px);border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);
+  background:radial-gradient(55% 45% at 50% 35%,#FFFFFF,transparent 75%),radial-gradient(40% 30% at 85% 90%,rgba(240,138,12,.10),transparent 70%),radial-gradient(40% 30% at 12% 85%,rgba(17,180,212,.10),transparent 70%),#EEF3F7;
+  aspect-ratio:1/1;max-height:calc(100vh - 100px);width:100%;margin-inline:auto}
+.studio-top{position:absolute;top:12px;left:14px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;z-index:2}
+.studio-bottom{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:center;gap:8px;z-index:2}
+.live{display:inline-flex;align-items:center;gap:8px;font:500 11px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:#4A5878}
+.live i{width:7px;height:7px;border-radius:50%;background:#11B4D4;box-shadow:0 0 8px #11B4D4;animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
-.stage-bottom{position:absolute;left:12px;right:12px;bottom:14px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
-.chip{border:1px solid var(--line);background:rgba(11,22,52,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;transition:.18s}
-.chip:hover{border-color:var(--line-strong);color:var(--cyan)}
-.chip.wave{background:var(--cyan);color:var(--on-cyan);border-color:var(--cyan)}
+.tag{font:500 11.5px/1 var(--f-mono);color:#0B1634;background:rgba(255,255,255,.75);border:1px solid rgba(11,22,52,.1);border-radius:999px;padding:7px 11px}
+.tag:empty{display:none}
+.chip{border:1px solid rgba(11,22,52,.12);background:rgba(255,255,255,.8);color:#0B1634;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;transition:.18s}
+.chip:hover{border-color:var(--naranja);color:var(--naranja-profundo)}
+.stack{position:absolute;inset:0;mix-blend-mode:multiply}
+.stack img{position:absolute;display:block;max-width:none;pointer-events:none;user-select:none;-webkit-user-drag:none;transition:opacity .38s ease}
+.figure{position:absolute;inset:0;transform-origin:50% 100%}
+.studio .figure{animation:breathe 4.8s ease-in-out infinite}
+.studio .figure .sway{position:absolute;inset:0;transform-origin:50% 100%;animation:sway 9s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.004,1.008)}}
+@keyframes sway{0%,100%{transform:rotate(-.25deg) translateY(0)}50%{transform:rotate(.25deg) translateY(-2px)}}
+.studio img.g-lineas{animation:energy 2.6s ease-in-out infinite}
+@keyframes energy{0%,100%{opacity:.82}50%{opacity:1}}
+.figure.pop{animation:pop .55s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes pop{0%{transform:scale(.985)}100%{transform:scale(1)}}
 .ghost{border:1px solid var(--line);background:transparent;border-radius:999px;padding:9px 16px;font-size:13.5px;font-weight:600;transition:.18s}
 .ghost:hover{border-color:var(--line-strong);color:var(--cyan)}
 .ghost[disabled]{opacity:.35;cursor:default}
@@ -75,8 +87,10 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px so
 .opt[aria-pressed="true"]::after{content:"";position:absolute;top:9px;right:9px;width:20px;height:20px;border-radius:50%;background:var(--naranja) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-7' fill='none' stroke='%2303122A' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat}
 .opt[disabled]{opacity:.42;cursor:not-allowed}
 .opt .why{font-size:11.5px;color:var(--warn);padding-inline:4px;line-height:1.3}
-.thumb{border-radius:11px;background:radial-gradient(70% 60% at 50% 40%,rgba(125,246,251,.12),transparent 70%),#071029;aspect-ratio:1/1;overflow:hidden;max-width:100%}
-.thumb svg{width:100%;height:100%;display:block}
+.thumb{position:relative;border-radius:11px;overflow:hidden;aspect-ratio:1/1;background:linear-gradient(180deg,#FFFFFF,#EEF3F7);max-width:100%;isolation:isolate}
+.thumb .figure{transition:none;transform-origin:50% 50%}
+.opt .dot-c{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1px solid rgba(255,255,255,.25)}
+.ficha .code{padding:12px 14px;font:500 12px/1.4 var(--f-mono);letter-spacing:.06em;color:var(--naranja-claro);background:rgba(240,138,12,.06);word-break:break-all}
 .opt b{font-weight:700;font-size:14px;padding-inline:4px}
 .opt small{color:var(--muted);font-size:12.5px;line-height:1.35;padding-inline:4px}
 .sw{display:flex;flex-wrap:wrap;gap:10px}
@@ -126,7 +140,7 @@ button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px so
 .card{position:relative;border:1px solid var(--line);background:var(--deep);border-radius:var(--r-md);padding:8px;display:flex;flex-direction:column;gap:6px;text-align:left;transition:.18s}
 .card:hover{border-color:var(--line-strong);transform:translateY(-2px)}
 .card[aria-pressed="true"]{border-color:var(--naranja);box-shadow:0 0 0 1px var(--naranja)}
-.card .tag{position:absolute;top:8px;left:8px;font:600 10.5px/1 var(--f-body);background:var(--naranja);color:var(--on-naranja);border-radius:999px;padding:4px 7px}
+.card .tag{position:absolute;z-index:2;top:8px;left:8px;font:600 10.5px/1 var(--f-body);background:var(--naranja);color:var(--on-naranja);border-radius:999px;padding:4px 7px}
 .card .n{font:500 11.5px var(--f-mono);color:var(--muted);padding-inline:4px}
 .card .votes{font-weight:700;color:var(--cyan);padding-inline:4px}
 table.tbl{width:100%;border-collapse:collapse;font-size:13px}
@@ -163,10 +177,9 @@ footer a{color:var(--muted)}
 
 @media (max-width:860px){
   .grid{grid-template-columns:minmax(0,1fr)}
-  .stage{top:calc(env(safe-area-inset-top,0px) + 6px);height:44vh;min-height:300px;z-index:3;box-shadow:0 18px 40px -18px #000}
-  .stage svg.av{inset:40px 8px 54px;width:calc(100% - 16px);height:calc(100% - 94px)}
-  .stage-bottom{bottom:10px;gap:6px}
-  .chip{padding:6px 11px;font-size:12px}
+  .studio{top:calc(env(safe-area-inset-top,0px) + 6px);max-height:46vh;max-width:46vh;z-index:3;box-shadow:0 18px 40px -18px #000}
+  .studio-bottom{bottom:8px}
+  .chip{padding:5px 11px;font-size:12px}
   .panel{padding:18px}
   .opts{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
   .bar{grid-template-columns:90px minmax(0,1fr) 56px}

@@ -4,8 +4,8 @@
   const SES = {
     get token() { try { return sessionStorage.getItem('aurora.token') || ''; } catch (e) { return ''; } },
     set token(v) { try { sessionStorage.setItem('aurora.token', v); } catch (e) {} },
-    get colab() { try { return JSON.parse(localStorage.getItem('aurora.colab') || 'null'); } catch (e) { return null; } },
-    set colab(v) { try { localStorage.setItem('aurora.colab', JSON.stringify(v)); } catch (e) {} },
+    get colab() { try { return JSON.parse(localStorage.getItem('aurora.colab.v3') || 'null'); } catch (e) { return null; } },
+    set colab(v) { try { localStorage.setItem('aurora.colab.v3', JSON.stringify(v)); } catch (e) {} },
     get admin() { try { return sessionStorage.getItem('aurora.admin') || ''; } catch (e) { return ''; } },
     set admin(v) { try { sessionStorage.setItem('aurora.admin', v); } catch (e) {} }
   };
@@ -15,8 +15,8 @@
   }
   /* ----- modo demostración: misma forma de respuestas, datos en localStorage, sin seguridad real ----- */
   const demo = {
-    db() { try { return JSON.parse(localStorage.getItem('aurora.demo') || 'null') || { estado: { rondaA: 'abierta', galeria: 'no', rondaB: 'no_iniciada' }, votosA: [], votosB: [], desempates: {} }; } catch (e) { return { estado: { rondaA: 'abierta', galeria: 'no', rondaB: 'no_iniciada' }, votosA: [], votosB: [], desempates: {} }; } },
-    save(d) { localStorage.setItem('aurora.demo', JSON.stringify(d)); },
+    db() { try { return JSON.parse(localStorage.getItem('aurora.demo.v3') || 'null') || { estado: { rondaA: 'abierta', galeria: 'no', rondaB: 'no_iniciada' }, votosA: [], votosB: [], desempates: {} }; } catch (e) { return { estado: { rondaA: 'abierta', galeria: 'no', rondaB: 'no_iniciada' }, votosA: [], votosB: [], desempates: {} }; } },
+    save(d) { localStorage.setItem('aurora.demo.v3', JSON.stringify(d)); },
     async call(b) {
       const d = this.db(), col = window.COLABORADORES;
       const voted = (lista, id) => lista.some(v => !v.anulado && String(v.colaboradorId) === String(id));
@@ -52,7 +52,7 @@
           if (b.op === 'anular') { const v = d.votosA.concat(d.votosB).find(x => x.votoId === b.votoId); if (v) v.anulado = true; this.save(d); return { ok: !!v }; }
           if (b.op === 'csv') { const rows = b.ronda === 'B' ? d.votosB : d.votosA; return { ok: true, nombre: 'votos_demo.csv', csv: rows.map(r => [r.votoId, r.nombre, r.fecha, JSON.stringify(r.eleccion || r.disenoId)].join(',')).join('\n') }; }
           if (b.op === 'desempate') { if (b.opcion) d.desempates[b.pregunta] = b.opcion; else delete d.desempates[b.pregunta]; this.save(d); return { ok: true, desempates: d.desempates }; }
-          if (b.op === 'reiniciar') { if (b.confirmar !== 'BORRAR TODO') return { ok: false, error: 'invalido', mensaje: 'Escribe BORRAR TODO para confirmar.' }; localStorage.removeItem('aurora.demo'); return { ok: true }; }
+          if (b.op === 'reiniciar') { if (b.confirmar !== 'BORRAR TODO') return { ok: false, error: 'invalido', mensaje: 'Escribe BORRAR TODO para confirmar.' }; localStorage.removeItem('aurora.demo.v3'); return { ok: true }; }
           return { ok: false, error: 'accion' };
         }
         default: return { ok: false, error: 'accion' };
@@ -61,11 +61,12 @@
     resA(d) {
       const P = window.CATALOGO.preguntas.map(p => p.id);
       const lista = d.votosA.filter(v => !v.anulado), conteo = {}, dis = {}; P.forEach(k => conteo[k] = {});
-      lista.forEach(v => { const e = v.eleccion; P.forEach(k => (k === 'detalles' ? (e.detalles.length ? e.detalles : ['ninguno']) : [e[k]]).forEach(x => { if (x) conteo[k][x] = (conteo[k][x] || 0) + 1; })); const s = JSON.stringify(e); if (!dis[s]) dis[s] = { n: 0, eleccion: e, ejemplo: v.votoId }; dis[s].n++; });
+      lista.forEach(v => { const e = v.eleccion; P.forEach(k => { const x = e[k]; if (x) conteo[k][x] = (conteo[k][x] || 0) + 1; }); const s = P.map(k => e[k] || '').join('|'); if (!dis[s]) dis[s] = { n: 0, eleccion: e, ejemplo: v.votoId }; dis[s].n++; });
       const ganador = {}, empates = {};
       P.forEach(k => { const pares = Object.entries(conteo[k]).sort((a, b) => b[1] - a[1]); if (!pares.length) { ganador[k] = null; return; } const top = pares.filter(p => p[1] === pares[0][1]); if (top.length > 1) empates[k] = top.map(p => p[0]); ganador[k] = d.desempates[k] && conteo[k][d.desempates[k]] === pares[0][1] ? d.desempates[k] : pares[0][0]; });
-      { const det = Object.entries(conteo.detalles).sort((a, b) => b[1] - a[1]); ganador.detalles = det.length && det[0][0] === 'ninguno' ? ['ninguno'] : det.filter(p => p[0] !== 'ninguno').slice(0, 2).filter(p => p[1] / lista.length >= .25).map(p => p[0]); }
-      return { participacion: { votos: lista.length, colaboradores: window.COLABORADORES.length }, conteo, ganador, empates, desempates: d.desempates, top3: Object.values(dis).sort((a, b) => b.n - a.n).slice(0, 3) };
+      // las luces del traje solo cuentan si gana el estilo tecnológico
+      window.CATALOGO.preguntas.forEach(q => { if (q.aplicaSi && !Object.entries(q.aplicaSi).every(([k, l]) => l.includes(ganador[k]))) ganador[q.id] = ''; });
+      return { participacion: { votos: lista.length, colaboradores: window.COLABORADORES.length }, conteo, ganador, empates, desempates: d.desempates, distintos: Object.keys(dis).length, top3: Object.values(dis).sort((a, b) => b.n - a.n).slice(0, 3) };
     },
     resB(d) {
       const vb = d.votosB.filter(v => !v.anulado), c = {}; vb.forEach(v => c[v.disenoId] = (c[v.disenoId] || 0) + 1);
